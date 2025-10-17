@@ -1,0 +1,123 @@
+-- AXIN HUB X959 - CHAIN [ENRAGED] 无限攻击体力
+local ChainInfiniteComboStamina = {
+    Name = "AXIN HUB X959 - Infinite Combo Stamina", 
+    Version = "v1.0",
+    Game = "CHAIN [ENRAGED]"
+}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+local Config = {
+    Enabled = true,
+    MaxComboStamina = 100,
+    DetectAttackResources = true
+}
+
+local State = {
+    ComboResources = {},
+    AttackResources = {},
+    SpecialResources = {}
+}
+
+print("=== AXIN HUB X959 无限攻击体力 ===")
+
+function FindComboResources()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    -- 攻击相关资源
+    local comboResourceNames = {
+        "ComboPoints", "AttackStamina", "SpecialEnergy",
+        "UltimateCharge", "Mana", "Focus", "Rage",
+        "ComboMeter", "SpecialMeter", "SuperMeter"
+    }
+    
+    for _, name in pairs(comboResourceNames) do
+        -- 在Humanoid中查找
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid and humanoid[name] then
+            State.ComboResources[#State.ComboResources + 1] = {
+                Object = humanoid,
+                Property = name,
+                Type = "HumanoidProperty"
+            }
+            print("🎯 找到攻击资源: " .. name)
+        end
+        
+        -- 在角色中查找
+        local resourceValue = character:FindFirstChild(name)
+        if resourceValue and resourceValue:IsA("NumberValue") then
+            State.ComboResources[#State.ComboResources + 1] = {
+                Object = resourceValue,
+                Property = "Value",
+                Type = "NumberValue"
+            }
+            print("🎯 找到攻击资源值: " .. name)
+        end
+        
+        -- 在Player中查找
+        local playerResource = LocalPlayer:FindFirstChild(name)
+        if playerResource and playerResource:IsA("NumberValue") then
+            State.ComboResources[#State.ComboResources + 1] = {
+                Object = playerResource,
+                Property = "Value",
+                Type = "NumberValue"
+            }
+            print("🎯 找到玩家攻击资源: " .. name)
+        end
+    end
+    
+    -- 检测攻击系统模块
+    if Config.DetectAttackResources then
+        DetectAttackSystems()
+    end
+end
+
+function DetectAttackSystems()
+    local attackSystems = {
+        "ComboSystem", "SpecialAttack", "UltimateSystem",
+        "SkillSystem", "AbilityManager"
+    }
+    
+    for _, systemName in pairs(attackSystems) do
+        local system = ReplicatedStorage:FindFirstChild(systemName)
+        if system then
+            print("🔍 找到攻击系统: " .. systemName)
+        end
+    end
+end
+
+function MaintainComboResources()
+    for _, resource in pairs(State.ComboResources) do
+        pcall(function()
+            if resource.Type == "HumanoidProperty" then
+                resource.Object[resource.Property] = Config.MaxComboStamina
+            elseif resource.Type == "NumberValue" then
+                resource.Object.Value = Config.MaxComboStamina
+            end
+        end)
+    end
+end
+
+-- 初始检测
+FindComboResources()
+
+-- 角色监听
+LocalPlayer.CharacterAdded:Connect(function(character)
+    wait(1)
+    FindComboResources()
+end)
+
+-- 主循环
+RunService.Heartbeat:Connect(function()
+    if not Config.Enabled then return end
+    if #State.ComboResources == 0 then return end
+    
+    MaintainComboResources()
+end)
+
+print("✅ 无限攻击体力系统就绪")
+print("📊 找到 " .. #State.ComboResources .. " 个攻击资源系统")
